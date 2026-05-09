@@ -338,9 +338,16 @@ body {
           <div class="section-label">Loopback</div>
           <input type="text" class="ios-input" id="unitId" placeholder="e.g. 113" oninput="onLoopbackInput(event); generate()" inputmode="numeric">
         </div>
+        <div class="form-block">
+          <div class="section-label">Interface</div>
+          <input type="text" class="ios-input" id="interfaceName" placeholder="e.g. wan2" oninput="generate()">
+        </div>
+      </div>
+
+      <div class="three-col">
         <div style="display: flex; gap: 8px; align-items: flex-end; flex: 1;">
           <div class="form-block" style="margin-bottom: 0; flex: 1;">
-            <div class="section-label">Link Interface</div>
+            <div class="section-label">Link IP</div>
             <input type="text" class="ios-input" id="linkInterface" placeholder="e.g. 189.1.165.135" oninput="onLinkInterfaceInput(event); generate()" inputmode="numeric">
           </div>
           <span style="color: var(--text-secondary); font-weight: 600; margin-bottom: 7px;">/</span>
@@ -590,12 +597,13 @@ body {
   function generate() {
     const name = document.getElementById('unitName').value.trim();
     const id = document.getElementById('unitId').value.trim();
-    const iface = document.getElementById('linkInterface').value.trim();
+    const interfaceName = document.getElementById('interfaceName').value.trim();
+    const linkIp = document.getElementById('linkInterface').value.trim();
     const mask = document.getElementById('linkMask').value.trim();
 
     const PLACEHOLDER = '<span class="placeholder-text">Fill in the fields above to generate.</span>';
 
-    if (!name || !id || !iface || !mask) {
+    if (!name || !id || !interfaceName || !linkIp || !mask) {
       ['block1','block2','block3','block4','block5'].forEach(bid => {
         document.getElementById(bid).innerHTML = PLACEHOLDER;
       });
@@ -617,7 +625,7 @@ body {
       b1 =
 `config vpn ipsec phase1-interface
 edit "${cfg.vpnName}"
-set interface "${iface}"
+set interface "${interfaceName}"
 set keylife 28800
 set mode aggressive
 set peertype any
@@ -663,7 +671,7 @@ set ip ${unitIp} 255.255.255.255
 set allowaccess ping
 set type tunnel
 set remote-ip ${cfg.remoteIpFull} 255.255.255.0
-set interface "${iface}"
+set interface "${interfaceName}"
 next
 end`;
 
@@ -671,7 +679,7 @@ end`;
       b1 =
 `config vpn ipsec phase1-interface
 edit "${cfg.vpnName}"
-set interface "${iface}"
+set interface "${interfaceName}"
 set mode aggressive
 set peertype one
 set net-device enable
@@ -719,7 +727,7 @@ set ip ${unitIp} 255.255.255.255
 set allowaccess ping
 set type tunnel
 set remote-ip ${cfg.remoteIpFull} 255.255.255.0
-set interface "${iface}"
+set interface "${interfaceName}"
 next
 end`;
     }
@@ -739,13 +747,13 @@ end`;
 
     const b5 =
 `config system interface
-edit "wan2"
-set ip ${iface} ${maskDotted}
+edit "${interfaceName}"
+set ip ${linkIp} ${maskDotted}
 set alias "LINK_HOSTFIBER"
 next
 end`;
 
-    const networkInfo = calculateNetworkInfo(iface, maskCIDR);
+    const networkInfo = calculateNetworkInfo(linkIp, maskCIDR);
     let networkInfoText = '';
     if (networkInfo) {
       networkInfoText = `${networkInfo.network}/${maskCIDR}`;
