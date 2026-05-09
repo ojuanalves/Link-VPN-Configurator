@@ -284,6 +284,83 @@ body {
 .toast.show { transform: translateX(-50%) translateY(0); opacity: 1; }
 .toast-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--primary); flex-shrink: 0; }
 
+.info-btn {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: rgba(255, 79, 0, 0.15);
+  border: 1px solid var(--primary);
+  color: var(--primary);
+  font-size: 11px;
+  font-weight: 700;
+  cursor: help;
+  transition: all 0.2s ease;
+  margin-left: 8px;
+  opacity: 1;
+}
+
+.info-btn:hover {
+  background: rgba(255, 79, 0, 0.25);
+  transform: scale(1.1);
+}
+
+.info-btn.hidden {
+  opacity: 0;
+  pointer-events: none;
+  display: none;
+}
+
+.info-tooltip {
+  position: absolute;
+  bottom: 100%;
+  left: 50%;
+  transform: translateX(-50%) translateY(-8px);
+  background: #1b2228;
+  border: 1px solid var(--primary);
+  border-radius: var(--radius);
+  padding: 10px 12px;
+  white-space: nowrap;
+  font-size: 12px;
+  color: var(--text-secondary);
+  z-index: 1000;
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity 0.2s ease, visibility 0.2s ease;
+  pointer-events: none;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.info-btn:hover .info-tooltip {
+  opacity: 1;
+  visibility: visible;
+  pointer-events: auto;
+}
+
+.info-tooltip-copy {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 16px;
+  height: 16px;
+  background: rgba(255, 79, 0, 0.2);
+  border: 0.5px solid var(--primary);
+  border-radius: 3px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  flex-shrink: 0;
+}
+
+.info-tooltip-copy:hover {
+  background: var(--primary);
+  color: #fff;
+}
+
 @media (prefers-reduced-motion: reduce) {
   html, .code-block { scroll-behavior: auto; }
   *, *::before, *::after { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; }
@@ -365,7 +442,7 @@ body {
             <div class="output-header">
               <div class="output-title">
                 <span class="output-badge">1</span>
-                Phase 1 Interface
+                VPN IPSEC
               </div>
               <button class="btn btn-ghost" onclick="copyBlock(this, 'block1')">Copy</button>
             </div>
@@ -376,7 +453,7 @@ body {
             <div class="output-header">
               <div class="output-title">
                 <span class="output-badge">2</span>
-                Phase 2 Interface
+                Router BGP
               </div>
               <button class="btn btn-ghost" onclick="copyBlock(this, 'block2')">Copy</button>
             </div>
@@ -387,7 +464,7 @@ body {
             <div class="output-header">
               <div class="output-title">
                 <span class="output-badge">3</span>
-                Router BGP
+                System Interface
               </div>
               <button class="btn btn-ghost" onclick="copyBlock(this, 'block3')">Copy</button>
             </div>
@@ -398,32 +475,18 @@ body {
             <div class="output-header">
               <div class="output-title">
                 <span class="output-badge">4</span>
-                System Interface
+                Link Interface
+                <button class="info-btn hidden" id="infoBtn">
+                  !
+                  <div class="info-tooltip">
+                    <span id="networkInfoText"></span>
+                    <div class="info-tooltip-copy" onclick="copyNetworkInfo(event)">📋</div>
+                  </div>
+                </button>
               </div>
               <button class="btn btn-ghost" onclick="copyBlock(this, 'block4')">Copy</button>
             </div>
             <pre class="code-block" id="block4"><span class="placeholder-text">Fill in the fields above to generate.</span></pre>
-          </div>
-
-          <div class="output-card">
-            <div class="output-header">
-              <div class="output-title">
-                <span class="output-badge">5</span>
-                Link Interface
-              </div>
-              <button class="btn btn-ghost" onclick="copyBlock(this, 'block5')">Copy</button>
-            </div>
-            <pre class="code-block" id="block5"><span class="placeholder-text">Fill in the fields above to generate.</span></pre>
-          </div>
-
-          <div class="output-card">
-            <div class="output-header">
-              <div class="output-title">
-                <span class="output-badge">ℹ</span>
-                Network Info
-              </div>
-            </div>
-            <pre class="code-block" id="networkInfo" style="max-height: 140px;"><span class="placeholder-text">Network information will appear here.</span></pre>
           </div>
         </div>
 
@@ -466,9 +529,10 @@ body {
     peerid: 'CAS-03',
   };
 
-  let cachedBlocks = { block1: '', block2: '', block3: '', block4: '', block5: '' };
+  let cachedBlocks = { block1: '', block2: '', block3: '', block4: '' };
   let hasContent = false;
   let debounceTimer = null;
+  let currentNetworkInfo = null;
 
   function showToast(msg) {
     const toast = document.getElementById('toast');
@@ -604,12 +668,12 @@ body {
     const PLACEHOLDER = '<span class="placeholder-text">Fill in the fields above to generate.</span>';
 
     if (!name || !id || !interfaceName || !linkIp || !mask) {
-      ['block1','block2','block3','block4','block5'].forEach(bid => {
+      ['block1','block2','block3','block4'].forEach(bid => {
         document.getElementById(bid).innerHTML = PLACEHOLDER;
       });
-      document.getElementById('networkInfo').innerHTML = PLACEHOLDER;
-      cachedBlocks = { block1: '', block2: '', block3: '', block4: '', block5: '' };
+      cachedBlocks = { block1: '', block2: '', block3: '', block4: '' };
       hasContent = false;
+      updateInfoBtn(false);
       return;
     }
 
@@ -619,7 +683,7 @@ body {
     const localid = `${name}-${id}`;
     const unitIp = `${cfg.ipBase}.${id}`;
 
-    let b1, b2, b3, b4;
+    let b1, b2, b3;
 
     if (mode === 'DC') {
       b1 =
@@ -638,10 +702,9 @@ set dhgrp 14 2
 set remote-gw ${cfg.remoteGw}
 set psksecret ${cfg.psksecret}
 next
-end`;
+end
 
-      b2 =
-`config vpn ipsec phase2-interface
+config vpn ipsec phase2-interface
 edit "${cfg.vpnName}"
 set phase1name "${cfg.vpnName}"
 set proposal aes128-sha256 3des-sha256 aes128-sha384
@@ -650,7 +713,7 @@ set auto-negotiate enable
 next
 end`;
 
-      b3 =
+      b2 =
 `config router bgp
 config neighbor
 edit "${cfg.bgpNeighbor}"
@@ -663,7 +726,7 @@ next
 end
 end`;
 
-      b4 =
+      b3 =
 `config system interface
 edit "${cfg.vpnName}"
 set vdom "root"
@@ -693,10 +756,9 @@ set remote-gw ${cfg.remoteGw}
 set peerid "${cfg.peerid}"
 set psksecret ${cfg.psksecret}
 next
-end`;
+end
 
-      b2 =
-`config vpn ipsec phase2-interface
+config vpn ipsec phase2-interface
 edit "${cfg.vpnName}"
 set phase1name "${cfg.vpnName}"
 set proposal aes256-sha1 aes128-sha256 aes256-sha256
@@ -706,7 +768,7 @@ set keylifeseconds 3600
 next
 end`;
 
-      b3 =
+      b2 =
 `config router bgp
 config neighbor
 edit "${cfg.bgpNeighbor}"
@@ -719,7 +781,7 @@ next
 end
 end`;
 
-      b4 =
+      b3 =
 `config system interface
 edit "${cfg.vpnName}"
 set vdom "root"
@@ -736,16 +798,16 @@ end`;
     const maskCIDR = getMaskCIDR(mask);
 
     if (!maskDotted || maskCIDR === null) {
-      ['block1','block2','block3','block4','block5'].forEach(bid => {
+      ['block1','block2','block3','block4'].forEach(bid => {
         document.getElementById(bid).innerHTML = PLACEHOLDER;
       });
-      document.getElementById('networkInfo').innerHTML = PLACEHOLDER;
-      cachedBlocks = { block1: '', block2: '', block3: '', block4: '', block5: '' };
+      cachedBlocks = { block1: '', block2: '', block3: '', block4: '' };
       hasContent = false;
+      updateInfoBtn(false);
       return;
     }
 
-    const b5 =
+    const b4 =
 `config system interface
 edit "${interfaceName}"
 set ip ${linkIp} ${maskDotted}
@@ -754,20 +816,20 @@ next
 end`;
 
     const networkInfo = calculateNetworkInfo(linkIp, maskCIDR);
-    let networkInfoText = '';
+    currentNetworkInfo = networkInfo;
+
     if (networkInfo) {
-      networkInfoText = `${networkInfo.network}/${maskCIDR}`;
+      document.getElementById('networkInfoText').textContent = `${networkInfo.network}/${maskCIDR}`;
+      updateInfoBtn(true);
     } else {
-      networkInfoText = '<span class="placeholder-text">Invalid IP or mask.</span>';
+      updateInfoBtn(false);
     }
 
-    cachedBlocks = { block1: b1, block2: b2, block3: b3, block4: b4, block5: b5 };
+    cachedBlocks = { block1: b1, block2: b2, block3: b3, block4: b4 };
     document.getElementById('block1').textContent = b1;
     document.getElementById('block2').textContent = b2;
     document.getElementById('block3').textContent = b3;
     document.getElementById('block4').textContent = b4;
-    document.getElementById('block5').textContent = b5;
-    document.getElementById('networkInfo').textContent = networkInfoText;
   }
 
   function calculateMaskFromCIDR(cidr) {
@@ -794,7 +856,7 @@ end`;
 
   function copyAll(btn) {
     if (!hasContent) return;
-    const text = [cachedBlocks.block1, cachedBlocks.block2, cachedBlocks.block3, cachedBlocks.block4, cachedBlocks.block5]
+    const text = [cachedBlocks.block1, cachedBlocks.block2, cachedBlocks.block3, cachedBlocks.block4]
       .filter(Boolean).join('\n\n\n');
     if (!text) return;
     const orig = btn.innerHTML;
@@ -822,6 +884,29 @@ end`;
     document.execCommand('copy');
     document.body.removeChild(area);
     onDone();
+  }
+
+  function updateInfoBtn(show) {
+    const btn = document.getElementById('infoBtn');
+    if (show) {
+      btn.classList.remove('hidden');
+    } else {
+      btn.classList.add('hidden');
+    }
+  }
+
+  function copyNetworkInfo(event) {
+    event.stopPropagation();
+    if (!currentNetworkInfo) return;
+    const text = `${currentNetworkInfo.network}/${getMaskCIDR(document.getElementById('linkMask').value)}`;
+    const markCopied = () => {
+      showToast('Network info copied!');
+    };
+    if (navigator.clipboard && window.isSecureContext) {
+      navigator.clipboard.writeText(text).then(markCopied).catch(() => fallbackCopy(text, markCopied));
+    } else {
+      fallbackCopy(text, markCopied);
+    }
   }
 
   document.addEventListener('DOMContentLoaded', () => {
