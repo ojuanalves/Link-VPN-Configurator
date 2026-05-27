@@ -1,0 +1,967 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>FortiGate Tools - VPN Link Configurator</title>
+<link rel="icon" type="image/svg+xml" href="assets/fortinet.svg">
+<link href="https://fonts.googleapis.com/css2?family=SF+Pro+Display:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --ios-bg:          #171c20;
+  --ios-surface:     #252d33;
+  --ios-border:      #3a444c;
+  --ios-border2:     #56626c;
+
+  --primary:         #ff4f00;
+  --primary-light:   #ff7a2a;
+  --primary-dark:    #c43d00;
+  --green:           #4a9f58;
+  --green-light:     #69bd77;
+
+  --text-primary:    #e7edf2;
+  --text-secondary:  #b9c3cb;
+  --text-tertiary:   #7f8a93;
+
+  --mono:            'JetBrains Mono', Consolas, monospace;
+  --sans:            Arial, Helvetica, -apple-system, system-ui, sans-serif;
+
+  --radius:          5px;
+
+  --spring-smooth:   cubic-bezier(0.2, 0, 0, 1);
+  --spring-press:    cubic-bezier(0.2, 0, 0, 1);
+}
+
+html {
+  scroll-behavior: smooth;
+  overflow-y: scroll;
+  scrollbar-gutter: stable;
+  overscroll-behavior-y: contain;
+}
+* { scrollbar-color: #5a656d #20272d; scrollbar-width: thin; }
+body {
+  background:
+    linear-gradient(90deg, rgba(255,255,255,0.025) 1px, transparent 1px) 0 0 / 28px 28px,
+    linear-gradient(180deg, rgba(255,255,255,0.02) 1px, transparent 1px) 0 0 / 28px 28px,
+    var(--ios-bg);
+  color: var(--text-primary);
+  font-family: var(--sans);
+  min-height: 100vh;
+  overflow-x: hidden;
+  -webkit-font-smoothing: antialiased;
+}
+
+.bg-canvas { position: fixed; inset: 0; z-index: 0; overflow: hidden; pointer-events: none; background: linear-gradient(180deg, rgba(37,45,51,0.92), rgba(23,28,32,0.96)); }
+
+.app-wrapper { position: relative; z-index: 1; min-height: 100vh; display: flex; flex-direction: column; padding: 24px 20px 60px; max-width: 1120px; margin: 0 auto; }
+
+.app-header { text-align: center; margin-bottom: 36px; animation: fadeDown 0.28s var(--spring-smooth) both; }
+@keyframes fadeDown { from { opacity: 0; transform: translateY(-8px); } to { opacity: 1; transform: translateY(0); } }
+
+.app-logo {
+  position: relative; display: inline-flex; align-items: center; justify-content: center;
+  width: 72px; height: 72px;
+  background: linear-gradient(180deg, #303942, #20272d);
+  border: 1px solid #5a6670;
+  border-top: 4px solid var(--primary);
+  border-radius: var(--radius);
+  margin-bottom: 16px;
+  overflow: hidden;
+  isolation: isolate;
+  box-shadow: 0 12px 24px rgba(0,0,0,0.34), inset 0 1px 0 rgba(255,255,255,0.08);
+}
+.app-logo::before {
+  content: '';
+  position: absolute;
+  inset: 9px;
+  border: 1px solid rgba(255,255,255,0.08);
+  background:
+    linear-gradient(90deg, transparent 47%, rgba(255,255,255,0.07) 48% 52%, transparent 53%),
+    linear-gradient(180deg, transparent 47%, rgba(255,255,255,0.07) 48% 52%, transparent 53%);
+  pointer-events: none;
+}
+.app-logo::after { content: ''; position: absolute; left: 0; right: 0; bottom: 0; height: 4px; background: var(--primary); pointer-events: none; }
+.app-logo img { position: relative; z-index: 1; width: 38px; height: 38px; display: block; filter: drop-shadow(0 1px 1px rgba(0,0,0,0.55)); transform: translateY(1px); }
+
+.app-title { font-size: clamp(26px, 4vw, 36px); font-weight: 600; color: #f3f6f8; margin-bottom: 6px; }
+.app-subtitle { font-size: 13px; color: var(--text-tertiary); }
+.network-info-header { font-size: 13px; color: var(--text-secondary); font-family: var(--mono); margin-top: 6px; min-height: 18px; }
+
+.glass-card {
+  background: #252d33;
+  border: 1px solid #56626c;
+  border-radius: var(--radius);
+  box-shadow: 0 16px 36px rgba(0,0,0,0.36);
+  overflow: hidden;
+  position: relative;
+  animation: panelIn 0.24s var(--spring-smooth) both;
+}
+.glass-card::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-top: 4px solid var(--primary);
+  border-radius: var(--radius) var(--radius) 0 0;
+  pointer-events: none;
+}
+@keyframes panelIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+.panel-inner { padding: 48px; }
+
+.section-label { font-size: 11px; font-weight: 700; text-transform: uppercase; color: var(--text-secondary); margin-bottom: 10px; padding: 0 2px; }
+.form-block { margin-bottom: 20px; display: flex; flex-direction: column; flex: 1; }
+.three-col { display: flex; gap: 24px; margin-bottom: 20px; }
+.three-col .form-block { margin-bottom: 0; }
+
+.ios-input {
+  width: 100%;
+  background: #1b2228;
+  border: 1px solid #69737c;
+  border-radius: var(--radius);
+  color: var(--text-primary);
+  font-family: var(--sans);
+  font-size: 13px;
+  padding: 0 9px;
+  height: 28px;
+  outline: none;
+  box-shadow: inset 0 1px 2px rgba(0,0,0,0.38);
+  transition: border-color 0.14s ease, box-shadow 0.14s ease, background 0.14s ease;
+  caret-color: var(--primary);
+  box-sizing: border-box;
+}
+.ios-input:focus { border-color: var(--primary); box-shadow: inset 0 1px 2px rgba(0,0,0,0.38), 0 0 0 1px rgba(255,79,0,0.32); background: #202930; }
+.ios-input::placeholder { color: #7f8a93; }
+
+.mode-row {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  margin-bottom: 28px;
+}
+.mode-label {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  color: var(--text-secondary);
+}
+
+.segmented-control {
+  display: inline-grid;
+  grid-template-columns: 1fr 1fr;
+  min-width: 160px;
+  height: 28px;
+  background: #1b2228;
+  border: 1px solid #69737c;
+  border-radius: var(--radius);
+  overflow: hidden;
+}
+.segmented-control label {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 12px;
+  color: var(--text-secondary);
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+  user-select: none;
+  letter-spacing: 0.5px;
+}
+.segmented-control label + label { border-left: 1px solid #56626c; }
+.segmented-control input { position: absolute; opacity: 0; pointer-events: none; }
+.segmented-control label:has(input:checked) { background: var(--primary); color: #fff; }
+
+.btn {
+  display: inline-flex; align-items: center; justify-content: center; gap: 6px;
+  padding: 0 14px; height: 28px;
+  border: 1px solid #69737c;
+  border-radius: var(--radius);
+  font-family: var(--sans); font-size: 13px; font-weight: 500; cursor: pointer;
+  transition: background 0.32s var(--spring-smooth), border-color 0.32s var(--spring-smooth), color 0.32s var(--spring-smooth), transform 0.22s var(--spring-smooth), box-shadow 0.32s var(--spring-smooth);
+  white-space: nowrap; -webkit-tap-highlight-color: transparent;
+  position: relative; overflow: hidden; isolation: isolate; background-clip: padding-box;
+  --mx: 50%; --my: 50%;
+}
+.btn::before, .btn::after {
+  content: ''; position: absolute; inset: -1px; pointer-events: none;
+  opacity: 0; transition: opacity 0.36s var(--spring-smooth), transform 0.52s var(--spring-smooth);
+}
+.btn::before {
+  background:
+    radial-gradient(circle at var(--mx) var(--my), rgba(255,255,255,0.12), transparent 34%),
+    linear-gradient(110deg, transparent 0 28%, rgba(255,255,255,0.08) 38%, transparent 54% 100%);
+  transform: translateX(-5%);
+}
+.btn::after {
+  inset: 0;
+  border-top: 1px solid rgba(255,255,255,0.18);
+  border-bottom: 1px solid rgba(0,0,0,0.28);
+}
+.btn:hover { transform: translateY(-0.5px); }
+.btn:hover::after { opacity: 0.8; }
+.btn:hover::before { opacity: 0.72; transform: translateX(0); }
+.btn:focus-visible { outline: 1px solid var(--primary-light); outline-offset: 2px; }
+.btn:active { transform: translateY(1px); opacity: 0.94; transition: all 0.05s var(--spring-press); }
+.btn-ghost { background: linear-gradient(180deg, #34404a, #2a333b); color: var(--text-primary); border-color: #65717a; box-shadow: inset 0 1px 0 rgba(255,255,255,0.06); }
+.btn-ghost:hover { background: linear-gradient(180deg, #3a4650, #303941); border-color: #75818a; box-shadow: inset 0 1px 0 rgba(255,255,255,0.08), 0 4px 10px rgba(0,0,0,0.16); }
+.btn-primary { background: linear-gradient(180deg, var(--primary-light), var(--primary)); color: #fff; border-color: var(--primary-light); box-shadow: inset 0 1px 0 rgba(255,255,255,0.12); }
+.btn-primary:hover { background: linear-gradient(180deg, #ff6a1a, var(--primary-dark)); border-color: var(--primary-light); box-shadow: inset 0 1px 0 rgba(255,255,255,0.12), 0 4px 12px rgba(255,79,0,0.12); }
+.btn.copied { background: linear-gradient(180deg, #69bd77, #4a9f58) !important; color: #fff !important; border-color: #5fb46d !important; }
+
+.output-section { margin-top: 32px; }
+
+.output-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+  margin-bottom: 16px;
+}
+
+.output-card {
+  background: #11171b;
+  border: 1px solid #56626c;
+  border-radius: var(--radius);
+  overflow: hidden;
+  animation: slideUp 0.24s var(--spring-smooth) both;
+}
+@keyframes slideUp { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+
+.output-header {
+  display: flex; align-items: center; justify-content: space-between; gap: 12px;
+  padding: 0 10px; min-height: 32px;
+  border-bottom: 1px solid #56626c; background: #20272d;
+}
+.output-title { display: flex; align-items: center; gap: 8px; font-size: 12px; font-weight: 700; color: var(--text-secondary); text-transform: uppercase; }
+.output-badge {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 20px; height: 20px;
+  border-radius: 4px;
+  font-size: 11px; font-weight: 700;
+  background: var(--primary); color: #fff;
+}
+
+.code-block {
+  padding: 16px 20px;
+  font-family: var(--mono);
+  font-size: 12px;
+  line-height: 1.8;
+  color: #e6ecef;
+  overflow-x: auto;
+  white-space: pre;
+  tab-size: 4;
+  max-height: 280px;
+  overflow-y: auto;
+  scroll-behavior: smooth;
+  background: #11171b;
+  cursor: default;
+  user-select: none;
+  -webkit-user-select: none;
+}
+.code-block::-webkit-scrollbar { width: 11px; height: 11px; }
+.code-block::-webkit-scrollbar-track { background: #20272d; border-radius: 0; }
+.code-block::-webkit-scrollbar-thumb { background: #5a656d; border-radius: 3px; border: 2px solid #20272d; }
+.code-block::-webkit-scrollbar-thumb:hover { background: #74808a; }
+
+.placeholder-text { color: var(--text-tertiary); font-style: italic; }
+
+.copy-all-row {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 16px;
+}
+
+.modal-overlay {
+  position: fixed; inset: 0; z-index: 2000;
+  background: rgba(0,0,0,0.6);
+  display: flex; align-items: center; justify-content: center;
+  opacity: 0; pointer-events: none;
+  transition: opacity 0.18s ease;
+}
+.modal-overlay.show { opacity: 1; pointer-events: all; }
+.modal-box {
+  background: #252d33;
+  border: 1px solid #56626c;
+  border-top: 4px solid var(--primary);
+  border-radius: var(--radius);
+  box-shadow: 0 24px 48px rgba(0,0,0,0.5);
+  padding: 28px 32px;
+  max-width: 420px;
+  width: 90%;
+  animation: panelIn 0.2s var(--spring-smooth) both;
+}
+.modal-icon { font-size: 28px; margin-bottom: 12px; }
+.modal-title { font-size: 15px; font-weight: 700; color: var(--text-primary); margin-bottom: 10px; }
+.modal-body { font-size: 13px; color: var(--text-secondary); line-height: 1.6; margin-bottom: 24px; }
+.modal-actions { display: flex; gap: 10px; justify-content: flex-end; }
+
+.toast {
+  position: fixed; bottom: 32px; left: 50%;
+  transform: translateX(-50%) translateY(40px);
+  background: #263039; border: 1px solid #65717a; border-radius: var(--radius);
+  padding: 10px 18px; font-size: 13px; font-weight: 600; color: var(--text-primary);
+  display: flex; align-items: center; gap: 8px;
+  opacity: 0; transition: opacity 0.18s ease, transform 0.18s ease;
+  z-index: 1000; box-shadow: 0 8px 24px rgba(0,0,0,0.34); pointer-events: none;
+}
+.toast.show { transform: translateX(-50%) translateY(0); opacity: 1; }
+.toast-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--primary); flex-shrink: 0; }
+
+@media (prefers-reduced-motion: reduce) {
+  html, .code-block { scroll-behavior: auto; }
+  *, *::before, *::after { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; }
+  .btn:hover { transform: none; }
+}
+
+@media (max-width: 760px) {
+  .three-col { flex-direction: column; gap: 20px; }
+  .output-grid { grid-template-columns: 1fr; }
+  .panel-inner { padding: 30px 20px; }
+}
+</style>
+</head>
+<body>
+
+<div class="bg-canvas"></div>
+
+<div class="app-wrapper">
+  <div class="app-header">
+    <div class="app-logo">
+      <img src="assets/fortinet.svg" alt="Fortinet">
+    </div>
+    <h1 class="app-title">VPN Link Configurator</h1>
+    <p class="app-subtitle">FortiGate SPDM VPN Configuration Generator</p>
+    <p class="network-info-header" id="networkInfo1"></p>
+  </div>
+
+  <div class="glass-card">
+    <div class="panel-inner">
+
+      <!-- Mode Toggle -->
+      <div class="mode-row">
+        <span class="mode-label">Config Mode</span>
+        <div class="segmented-control" role="radiogroup" aria-label="VPN type">
+          <label>
+            <input type="radio" name="vpnMode" value="DC" checked onchange="generate()">
+            DC
+          </label>
+          <label>
+            <input type="radio" name="vpnMode" value="HSP" onchange="generate()">
+            HSP
+          </label>
+        </div>
+      </div>
+
+      <!-- Inputs -->
+      <div class="three-col">
+        <div class="form-block">
+          <div class="section-label">Hostname</div>
+          <input type="text" class="ios-input" id="unitName" placeholder="e.g. HSP-AMBDIAB" oninput="generate()">
+        </div>
+        <div class="form-block">
+          <div class="section-label">Loopback</div>
+          <input type="text" class="ios-input" id="unitId" placeholder="e.g. 113" oninput="onLoopbackInput(event); generate()" inputmode="numeric">
+        </div>
+        <div class="form-block">
+          <div class="section-label">Interface</div>
+          <input type="text" class="ios-input" id="interfaceName" placeholder="e.g. wan2" oninput="generate()">
+        </div>
+      </div>
+
+      <div class="three-col">
+        <div class="form-block">
+          <div class="section-label">Gateway</div>
+          <input type="text" class="ios-input" id="gateway" placeholder="e.g. 189.1.165.129" oninput="onLinkInterfaceInput(event); generate()" inputmode="numeric">
+        </div>
+        <div class="form-block">
+          <div class="section-label">Link IP</div>
+          <input type="text" class="ios-input" id="linkInterface" placeholder="e.g. 189.1.165.135" oninput="onLinkInterfaceInput(event); generate()" inputmode="numeric">
+        </div>
+        <div class="form-block">
+          <div class="section-label">Mask</div>
+          <input type="text" class="ios-input" id="linkMask" placeholder="e.g. 26 or 255.255.255.192" oninput="onMaskInput(event); debounceGenerate()">
+        </div>
+      </div>
+
+      <!-- Output Blocks -->
+      <div class="output-section">
+        <div class="output-grid">
+          <div class="output-card">
+            <div class="output-header">
+              <div class="output-title">
+                <span class="output-badge">1</span>
+                Link Interface
+              </div>
+              <button class="btn btn-ghost" onclick="copyBlock(this, 'block4')">Copy</button>
+            </div>
+            <pre class="code-block" id="block4"><span class="placeholder-text">Fill in the fields above to generate.</span></pre>
+          </div>
+
+          <div class="output-card">
+            <div class="output-header">
+              <div class="output-title">
+                <span class="output-badge">2</span>
+                IPsec + System Interface
+              </div>
+              <button class="btn btn-ghost" onclick="copyBlock(this, 'block1')">Copy</button>
+            </div>
+            <pre class="code-block" id="block1"><span class="placeholder-text">Fill in the fields above to generate.</span></pre>
+          </div>
+
+          <div class="output-card">
+            <div class="output-header">
+              <div class="output-title">
+                <span class="output-badge">3</span>
+                Router BGP
+              </div>
+              <button class="btn btn-ghost" onclick="copyBlock(this, 'block2')">Copy</button>
+            </div>
+            <pre class="code-block" id="block2"><span class="placeholder-text">Fill in the fields above to generate.</span></pre>
+          </div>
+
+          <div class="output-card">
+            <div class="output-header">
+              <div class="output-title">
+                <span class="output-badge">4</span>
+                SD-WAN Member
+              </div>
+              <button class="btn btn-ghost" onclick="copyBlock(this, 'block5')">Copy</button>
+            </div>
+            <pre class="code-block" id="block5"><span class="placeholder-text">Fill in the fields above to generate.</span></pre>
+          </div>
+        </div>
+
+        <div class="copy-all-row">
+          <button class="btn btn-primary" id="copyAllBtn" onclick="copyAll(this)">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
+            Copy IPsec + BGP + System
+          </button>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- Troubleshooting Section -->
+  <div class="glass-card" style="margin-top: 24px;">
+    <div class="panel-inner">
+      <div class="mode-row" style="justify-content: flex-start; margin-bottom: 20px;">
+        <span class="section-label" style="margin-bottom: 0; font-size: 13px;">Troubleshooting</span>
+      </div>
+
+      <div class="output-grid" style="grid-template-columns: 1fr 1fr;">
+        <div class="output-card">
+          <div class="output-header">
+            <div class="output-title">
+              <span class="output-badge" style="background: var(--ios-border2);">T</span>
+              Test Link
+            </div>
+            <button class="btn btn-ghost" onclick="copyBlock(this, 'blockTest')">Copy</button>
+          </div>
+          <pre class="code-block" id="blockTest"><span class="placeholder-text">Fill in the Link IP above to generate.</span></pre>
+        </div>
+
+        <div class="output-card">
+          <div class="output-header">
+            <div class="output-title">
+              <span class="output-badge" style="background: var(--green);">F</span>
+              Finished
+            </div>
+            <button class="btn btn-ghost" onclick="copyBlock(this, 'blockFinished')">Copy</button>
+          </div>
+          <pre class="code-block" id="blockFinished"><span class="placeholder-text">Fill in the fields above to generate.</span></pre>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="linkWarningModal">
+  <div class="modal-box">
+    <div class="modal-icon">⚠️</div>
+    <div class="modal-title">Warning — Link Interface</div>
+    <div class="modal-body">
+      Caution: applying this change to the wrong interface may break other links or aggregates.<br><br>
+      <strong>Are you sure the Hostfiber link was configured on this interface?</strong>
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-ghost" onclick="dismissLinkWarning(false)">Cancel</button>
+      <button class="btn btn-primary" onclick="dismissLinkWarning(true)">Continue</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast">
+  <div class="toast-dot"></div>
+  <span id="toastMsg">Copied to clipboard!</span>
+</div>
+
+<script>
+  const DC_CONFIG = {
+    vpnName: 'VPN_DC-HSTFIBER',
+    remoteGw: '189.1.175.210',
+    psksecret: 'ENC s12JNOBa9NGAd7kbJfnwwr130iVk8uWuLuEMG/B1DEs6w0Ia1hEiVtsktHw3tLBHpgF2sVP89XUbJqke+as9k1LB6qsLOGZ18AhUNhY4mXIY2hFKHQS0rBKF74/EF9Z3U6/CmXmT1PNzw2W2Dtf9QxQYBSNbjp3bg46AdY2Lf1F9s/rga+mw/E+UJzHXpBAdtLJMww==',
+    bgpNeighbor: '10.255.248.1',
+    bgpRemoteAs: '65502',
+    ipBase: '10.255.248',
+    remoteIpFull: '10.255.248.254',
+  };
+
+  const HSP_CONFIG = {
+    vpnName: 'VPN_HSP-HSTFIBE',
+    remoteGw: '189.1.167.184',
+    psksecret: 'ENC 2XlWPIxt0e3y9tLT/dpYCRQNFLFshKbPSgTWUJTEyePug3Qp+k9gBdpsqvspFskio8fgSjDUZCafNyS4nQzzli7WbekKy38h3k0of7g+9mPIWgC9R+YZ5yvat+lRiMjtv00rMDTQwylWqhdpfWGTpxQhmUZLDMZzSexO4JzaBCY/T1zqZ7+EGfDnV7LekvnK891foQ==',
+    bgpNeighbor: '10.255.246.1',
+    bgpRemoteAs: '65502',
+    ipBase: '10.255.246',
+    remoteIpFull: '10.255.246.254',
+    peerid: 'CAS-03',
+  };
+
+  let cachedBlocks = { block1: '', block2: '', block4: '', block5: '', blockTest: '', blockFinished: '' };
+  let linkInterfaceWarningShown = false;
+  let pendingLinkCopyCallback = null;
+  let hasContent = false;
+  let debounceTimer = null;
+
+  function showToast(msg) {
+    const toast = document.getElementById('toast');
+    document.getElementById('toastMsg').textContent = msg;
+    toast.classList.add('show');
+    if (toast.timeoutId) clearTimeout(toast.timeoutId);
+    toast.timeoutId = setTimeout(() => toast.classList.remove('show'), 2500);
+  }
+
+  function onLoopbackInput(event) {
+    let value = event.target.value;
+    value = value.replace(/[^0-9]/g, '');
+    event.target.value = value;
+  }
+
+  function onLinkInterfaceInput(event) {
+    let value = event.target.value;
+    value = value.replace(/[^0-9.]/g, '');
+    event.target.value = value;
+  }
+
+  function onMaskInput(event) {
+    let value = event.target.value;
+    value = value.replace(/[^0-9.]/g, '');
+    event.target.value = value;
+  }
+
+  function parseMask(maskInput) {
+    if (!maskInput) return null;
+
+    if (maskInput.includes('.')) {
+      return maskInput;
+    }
+
+    const cidr = parseInt(maskInput, 10);
+    if (isNaN(cidr) || cidr < 0 || cidr > 32) return null;
+
+    return calculateMaskFromCIDR(cidr);
+  }
+
+  function getMaskCIDR(maskInput) {
+    if (!maskInput) return null;
+
+    if (!maskInput.includes('.')) {
+      const cidr = parseInt(maskInput, 10);
+      if (isNaN(cidr) || cidr < 0 || cidr > 32) return null;
+      return cidr;
+    }
+
+    const mask = ipToInt(maskInput);
+    if (mask === null) return null;
+
+    let cidr = 0;
+    let check = 0x80000000;
+    for (let i = 0; i < 32; i++) {
+      if ((mask & check) !== 0) {
+        cidr++;
+        check >>>= 1;
+      } else {
+        break;
+      }
+    }
+    return cidr;
+  }
+
+  function debounceGenerate() {
+    if (debounceTimer) clearTimeout(debounceTimer);
+    debounceTimer = setTimeout(() => {
+      convertAndDisplayMask();
+      generate();
+    }, 600);
+  }
+
+  function convertAndDisplayMask() {
+    const maskInput = document.getElementById('linkMask');
+    const value = maskInput.value.trim();
+
+    if (!value) return;
+
+    const parsed = parseMask(value);
+    if (parsed && !value.includes('.')) {
+      maskInput.value = parsed;
+    }
+  }
+
+  function ipToInt(ip) {
+    const parts = ip.split('.');
+    if (parts.length !== 4) return null;
+    return parts.reduce((acc, part) => {
+      const num = parseInt(part, 10);
+      if (isNaN(num) || num < 0 || num > 255) return null;
+      return (acc << 8) + num;
+    }, 0);
+  }
+
+  function intToIp(int) {
+    return [
+      (int >>> 24) & 255,
+      (int >>> 16) & 255,
+      (int >>> 8) & 255,
+      int & 255
+    ].join('.');
+  }
+
+  function calculateNetworkInfo(ip, cidr) {
+    const ipInt = ipToInt(ip);
+    if (ipInt === null || !cidr || cidr < 0 || cidr > 32) return null;
+
+    const mask = (0xffffffff << (32 - cidr)) >>> 0;
+    const networkInt = ipInt & mask;
+    const broadcastInt = networkInt | (~mask >>> 0);
+
+    return {
+      ip: ip,
+      cidr: cidr,
+      network: intToIp(networkInt),
+      broadcast: intToIp(broadcastInt),
+      mask: intToIp(mask)
+    };
+  }
+
+  function getMode() {
+    return document.querySelector('input[name="vpnMode"]:checked').value;
+  }
+
+  function generate() {
+    const name = document.getElementById('unitName').value.trim();
+    const id = document.getElementById('unitId').value.trim();
+    const interfaceName = document.getElementById('interfaceName').value.trim();
+    const gateway = document.getElementById('gateway').value.trim();
+    const linkIp = document.getElementById('linkInterface').value.trim();
+    const mask = document.getElementById('linkMask').value.trim();
+
+    const PLACEHOLDER = '<span class="placeholder-text">Fill in the fields above to generate.</span>';
+
+    if (!name || !id || !interfaceName || !linkIp || !mask) {
+      ['block1','block2','block4','block5'].forEach(bid => {
+        document.getElementById(bid).innerHTML = PLACEHOLDER;
+      });
+      document.getElementById('networkInfo1').innerHTML = '';
+      document.getElementById('blockTest').innerHTML = '<span class="placeholder-text">Fill in the Link IP above to generate.</span>';
+      document.getElementById('blockFinished').innerHTML = '<span class="placeholder-text">Fill in the fields above to generate.</span>';
+      cachedBlocks = { block1: '', block2: '', block4: '', block5: '', blockTest: '', blockFinished: '' };
+      hasContent = false;
+      return;
+    }
+
+    hasContent = true;
+    linkInterfaceWarningShown = false;
+    const mode = getMode();
+    const cfg = mode === 'DC' ? DC_CONFIG : HSP_CONFIG;
+    const localid = `${name}-${id}`;
+    const unitIp = `${cfg.ipBase}.${id}`;
+
+    const maskDotted = parseMask(mask);
+    const maskCIDR = getMaskCIDR(mask);
+
+    if (!maskDotted || maskCIDR === null) {
+      ['block1','block2','block4','block5'].forEach(bid => {
+        document.getElementById(bid).innerHTML = PLACEHOLDER;
+      });
+      document.getElementById('networkInfo1').innerHTML = '';
+      document.getElementById('blockTest').innerHTML = '<span class="placeholder-text">Fill in the Link IP above to generate.</span>';
+      document.getElementById('blockFinished').innerHTML = '<span class="placeholder-text">Fill in the fields above to generate.</span>';
+      cachedBlocks = { block1: '', block2: '', block4: '', block5: '', blockTest: '', blockFinished: '' };
+      hasContent = false;
+      return;
+    }
+
+    let b1, b2, b4;
+
+    if (mode === 'DC') {
+      b1 =
+`config vpn ipsec phase1-interface
+edit "${cfg.vpnName}"
+set interface "${interfaceName}"
+set keylife 28800
+set mode aggressive
+set peertype any
+set net-device disable
+set exchange-interface-ip enable
+set proposal aes128-sha256 3des-sha256
+set localid "${localid}"
+set dpd disable
+set dhgrp 14 2
+set remote-gw ${cfg.remoteGw}
+set psksecret ${cfg.psksecret}
+next
+end
+
+config vpn ipsec phase2-interface
+edit "${cfg.vpnName}"
+set phase1name "${cfg.vpnName}"
+set proposal aes128-sha256 3des-sha256 aes128-sha384
+set dhgrp 14 2
+set auto-negotiate enable
+next
+end`;
+
+      b2 =
+`config router bgp
+config neighbor
+edit "${cfg.bgpNeighbor}"
+set next-hop-self enable
+set soft-reconfiguration enable
+set interface "${cfg.vpnName}"
+set remote-as ${cfg.bgpRemoteAs}
+next
+delete 10.255.247.1
+end
+end`;
+
+      b1 +=
+`
+
+config system interface
+edit "${cfg.vpnName}"
+set vdom "root"
+set ip ${unitIp} 255.255.255.255
+set allowaccess ping
+set type tunnel
+set remote-ip ${cfg.remoteIpFull} 255.255.255.0
+set interface "${interfaceName}"
+next
+end`;
+
+      b4 =
+`config system interface
+edit "${interfaceName}"
+set ip ${linkIp} ${maskDotted}
+set alias "LINK_HOSTFIBER"
+next
+end`;
+
+    } else {
+      b1 =
+`config vpn ipsec phase1-interface
+edit "${cfg.vpnName}"
+set interface "${interfaceName}"
+set mode aggressive
+set peertype one
+set net-device enable
+set exchange-interface-ip enable
+set proposal aes128-sha256 aes256-sha256
+set localid "${localid}"
+set dpd on-idle
+set dhgrp 32 31
+set nattraversal disable
+set remote-gw ${cfg.remoteGw}
+set peerid "${cfg.peerid}"
+set psksecret ${cfg.psksecret}
+next
+end
+
+config vpn ipsec phase2-interface
+edit "${cfg.vpnName}"
+set phase1name "${cfg.vpnName}"
+set proposal aes256-sha1 aes128-sha256 aes256-sha256
+set pfs disable
+set auto-negotiate enable
+set keylifeseconds 3600
+next
+end`;
+
+      b2 =
+`config router bgp
+config neighbor
+edit "${cfg.bgpNeighbor}"
+set next-hop-self enable
+set soft-reconfiguration enable
+set interface "${cfg.vpnName}"
+set remote-as ${cfg.bgpRemoteAs}
+set route-map-out "OUT_HSP"
+next
+delete 10.255.250.1
+end
+end`;
+
+      b1 +=
+`
+
+config system interface
+edit "${cfg.vpnName}"
+set vdom "root"
+set ip ${unitIp} 255.255.255.255
+set allowaccess ping
+set type tunnel
+set remote-ip ${cfg.remoteIpFull} 255.255.255.0
+set interface "${interfaceName}"
+next
+end`;
+
+      b4 =
+`config system interface
+edit "${interfaceName}"
+set ip ${linkIp} ${maskDotted}
+set alias "LINK_HOSTFIBER"
+next
+end`;
+    }
+
+    const networkInfo = calculateNetworkInfo(linkIp, maskCIDR);
+    let networkInfoText = '';
+    if (networkInfo) {
+      networkInfoText = `Network: ${networkInfo.network}/${maskCIDR}`;
+    }
+
+    const bTest =
+`exec ping-options source ${linkIp}
+exec ping ${gateway || '<gateway>'}
+exec ping 8.8.8.8`;
+
+    let bFinished =
+`##Ping Gateway
+exec ping-options source ${linkIp}
+exec ping ${gateway || '<gateway>'}
+##Ping Internet
+exec ping 8.8.8.8
+##SLA Link
+diagnose sys sdwan health-check | grep -if "${interfaceName}"
+##SLA VPN DC
+diagnose sys sdwan health-check | grep -if "${DC_CONFIG.vpnName}"`;
+
+    if (mode === 'HSP') {
+      bFinished += `\n##SLA VPN HSP\ndiagnose sys sdwan health-check | grep -if "${HSP_CONFIG.vpnName}"`;
+    }
+
+    bFinished += `\n##BGP\nget router info bgp summary\n`;
+
+    const b5 =
+`config system sdwan
+config members
+edit 0
+set interface "${cfg.vpnName}"
+set zone virtual-wan-link
+end
+end`;
+
+    cachedBlocks = { block1: b1, block2: b2, block4: b4, block5: b5, blockTest: bTest, blockFinished: bFinished };
+    document.getElementById('block1').textContent = b1;
+    document.getElementById('block2').textContent = b2;
+    document.getElementById('block4').textContent = b4;
+    document.getElementById('block5').textContent = b5;
+    document.getElementById('blockTest').textContent = bTest;
+    document.getElementById('blockFinished').textContent = bFinished;
+    document.getElementById('networkInfo1').textContent = networkInfoText;
+  }
+
+  function calculateMaskFromCIDR(cidr) {
+    const mask = (0xffffffff << (32 - cidr)) >>> 0;
+    return intToIp(mask);
+  }
+
+  function copyBlock(btn, blockId) {
+    const text = cachedBlocks[blockId];
+    if (!text) return;
+    const markCopied = () => {
+      const orig = btn.textContent;
+      btn.textContent = 'Copied!';
+      btn.classList.add('copied');
+      showToast('Copied to clipboard!');
+      setTimeout(() => { btn.textContent = orig; btn.classList.remove('copied'); }, 2200);
+    };
+    const doCopy = () => {
+      if (navigator.clipboard && window.isSecureContext) {
+        navigator.clipboard.writeText(text).then(markCopied).catch(() => fallbackCopy(text, markCopied));
+      } else {
+        fallbackCopy(text, markCopied);
+      }
+    };
+    if (blockId === 'block4' && !linkInterfaceWarningShown) {
+      pendingLinkCopyCallback = doCopy;
+      document.getElementById('linkWarningModal').classList.add('show');
+    } else {
+      doCopy();
+    }
+  }
+
+  function dismissLinkWarning(confirmed) {
+    document.getElementById('linkWarningModal').classList.remove('show');
+    if (confirmed && pendingLinkCopyCallback) {
+      linkInterfaceWarningShown = true;
+      pendingLinkCopyCallback();
+    }
+    pendingLinkCopyCallback = null;
+  }
+
+  function copyAll(btn) {
+    if (!hasContent) return;
+    const text = [cachedBlocks.block1, cachedBlocks.block2, cachedBlocks.block3, cachedBlocks.block4]
+      .filter(Boolean).join('\n\n\n');
+    if (!text) return;
+    const orig = btn.innerHTML;
+    const markCopied = () => {
+      btn.textContent = 'Copied!';
+      btn.classList.add('copied');
+      showToast('IPsec + BGP + System copied!');
+      setTimeout(() => { btn.innerHTML = orig; btn.classList.remove('copied'); }, 2200);
+    };
+    if (navigator.clipboard && window.isSecureContext) {
+      navigator.clipboard.writeText(text).then(markCopied).catch(() => fallbackCopy(text, markCopied));
+    } else {
+      fallbackCopy(text, markCopied);
+    }
+  }
+
+  function fallbackCopy(text, onDone) {
+    const area = document.createElement('textarea');
+    area.value = text;
+    area.setAttribute('readonly', '');
+    area.style.position = 'fixed';
+    area.style.left = '-9999px';
+    document.body.appendChild(area);
+    area.select();
+    document.execCommand('copy');
+    document.body.removeChild(area);
+    onDone();
+  }
+
+  document.addEventListener('DOMContentLoaded', () => {
+    document.body.addEventListener('mousemove', e => {
+      if (e.target.matches('.btn')) {
+        const btn = e.target;
+        const r = btn.getBoundingClientRect();
+        btn.style.setProperty('--mx', ((e.clientX - r.left) / r.width * 100).toFixed(1) + '%');
+        btn.style.setProperty('--my', ((e.clientY - r.top) / r.height * 100).toFixed(1) + '%');
+      }
+    });
+    document.body.addEventListener('mouseout', e => {
+      if (e.target.matches('.btn')) {
+        e.target.style.setProperty('--mx', '50%');
+        e.target.style.setProperty('--my', '50%');
+      }
+    });
+  });
+
+  generate();
+</script>
+</body>
+</html>
